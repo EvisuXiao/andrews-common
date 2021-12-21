@@ -1,0 +1,8 @@
+{
+  "page_size": 20,
+  "max_page_size": 5000,
+  "date_format": "2006-01-02",
+  "datetime_format": "2006-01-02 15:04:05",
+  "serial_datetime_format": "20060102150405",
+  "temp_path": "runtime/"
+}
