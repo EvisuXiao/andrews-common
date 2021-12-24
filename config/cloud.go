@@ -34,11 +34,11 @@ func (c *Cloud) Name() string {
 }
 
 func (c *Cloud) Source() string {
-	return ""
+	return SourceDefault
 }
 
-func (c *Cloud) Check() error {
-	return nil
+func (c *Cloud) FileType() string {
+	return TypeJson
 }
 
 func (c *Cloud) Init() {

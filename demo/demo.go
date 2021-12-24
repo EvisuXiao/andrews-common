@@ -3,17 +3,17 @@ package main
 import (
 	"time"
 
-	"github.com/EvisuXiao/andrews-common/config"
+	common "github.com/EvisuXiao/andrews-common"
 	demo "github.com/EvisuXiao/andrews-common/demo/src"
 	"github.com/EvisuXiao/andrews-common/http"
 	"github.com/EvisuXiao/andrews-common/logging"
 )
 
 func init() {
-	config.Init("Andrews-common")
+	common.Init("Andrews-common")
 }
 
-// 执行: go run demo/demo.go -dir=demo/src
+// 公司执行: go run demo/demo.go -dir=/Users/xiaowenbin/Workspace/code/andrews-project
 // 家里执行: go run demo/demo.go -dir=/Users/evisu/Workspace/Andrews/app
 func main() {
 	logging.Info("All Environment initialized successfully!")

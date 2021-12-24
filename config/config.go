@@ -1,30 +1,27 @@
 package config
 
 import (
-	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
 	"strings"
-
-	"gopkg.in/yaml.v3"
 
 	"github.com/EvisuXiao/andrews-common/utils"
 )
 
 const (
-	SOURCE_JSON   = "json"
-	SOURCE_YAML   = "yaml"
-	SOURCE_CENTER = "center"
+	SourceDefault = ""
+	SourceFile    = "file"
+	SourceCenter  = "center"
+
+	TypeJson = "json"
+	TypeYaml = "yaml"
 )
 
 type IConfig interface {
 	Name() string
 	Source() string
-	Check() error
+	FileType() string
 	Init()
 }
 
@@ -32,6 +29,7 @@ var (
 	ServiceName string
 	dir         string
 	source      string
+	center      string
 	configs     []IConfig
 	inited      bool
 )
@@ -45,8 +43,9 @@ func Init(serviceName string, cfgs ...IConfig) {
 	configs = append(configs, cfgs...)
 	setServiceName(serviceName)
 	parseFlag()
+	initCenter()
 	loadConf()
-	log.Print("[INFO] All configuration loaded successfully!")
+	log.Println("[INFO] All configuration loaded successfully!")
 	inited = true
 }
 
@@ -64,7 +63,8 @@ func RegisterConfig(cfg IConfig) {
 
 func parseFlag() {
 	flag.StringVar(&dir, "dir", "./", "The application directory")
-	flag.StringVar(&source, "source", "json", "The source of config file. json, yaml, center is available")
+	flag.StringVar(&source, "source", SourceFile, fmt.Sprintf("The source of config file. %s, %s is available", SourceFile, SourceCenter))
+	flag.StringVar(&center, "center", CenterNacos, fmt.Sprintf("The config center adapter. %s is supported, %s is in the todo list", CenterNacos, CenterApollo))
 	flag.Parse()
 	dir = utils.AddDirSuffixSlash(dir)
 	source = strings.ToLower(source)
@@ -78,60 +78,31 @@ func loadConf() {
 }
 
 func MapTo(cfg IConfig) {
-	var err error
-	s := utils.Or(cfg.Source(), source).(string)
-	switch s {
-	case SOURCE_JSON:
-		err = LoadFromJson(cfg)
-	case SOURCE_YAML:
-		err = LoadFromYaml(cfg)
-	case SOURCE_CENTER:
-		err = LoadFromCenter(cfg)
-	default:
-		log.Fatalf("[FATAL] Init fatal: invalid conf source(%s)\n", source)
-	}
 	name := cfg.Name()
+	read, err := readContent(cfg)
 	if utils.HasErr(err) {
-		log.Fatalf("[FATAL] Init fatal: load %s error: %+v\n", name, err)
+		log.Fatalf("[FATAL] Init fatal: read conf %s err: %+v\n", name, err)
 	}
-	utils.SetStructDefaultValue(cfg)
-	if err = cfg.Check(); utils.HasErr(err) {
-		log.Fatalf("[FATAL] Init fatal: check %s error: %+v\n", name, err)
+	err = mapCfg(read, cfg)
+	if utils.HasErr(err) {
+		log.Fatalf("[FATAL] Init fatal: map conf %s err: %+v\n", name, err)
 	}
-	cfg.Init()
-	log.Printf("[INFO] %s configuration loaded successfully!", name)
+	log.Printf("[INFO] %s configuration loaded successfully!\n", name)
 }
 
-func LoadFromYaml(cfg IConfig) error {
-	filename := AppFilePath(fmt.Sprintf("conf/%s.json", cfg.Name()))
-	f, err := os.Open(filename)
-	defer f.Close()
-	if utils.HasErr(err) {
-		return err
+func Stop() error {
+	if source != SourceCenter {
+		return nil
 	}
-	read, err := ioutil.ReadAll(f)
-	if utils.HasErr(err) {
-		return err
+	for _, cfg := range configs {
+		name := cfg.Name()
+		err := centerClient.CancelListenConfig(name)
+		if utils.HasErr(err) {
+			return err
+		}
+		log.Printf("[INFO] cancel listening %s configuration successfully!\n", name)
 	}
-	return yaml.Unmarshal(read, cfg)
-}
-
-func LoadFromJson(cfg IConfig) error {
-	filename := AppFilePath(fmt.Sprintf("conf/%s.json", cfg.Name()))
-	f, err := os.Open(filename)
-	defer f.Close()
-	if utils.HasErr(err) {
-		return err
-	}
-	read, err := ioutil.ReadAll(f)
-	if utils.HasErr(err) {
-		return err
-	}
-	return json.Unmarshal(read, cfg)
-}
-
-func LoadFromCenter(cfg IConfig) error {
-	return errors.New("todo function")
+	return nil
 }
 
 func AppFilePath(filename string) string {

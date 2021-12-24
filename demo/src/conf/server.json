@@ -1,9 +1,11 @@
 {
   "env": "local",
   "port": 28000,
+  "weight": 100.0,
   "timeout": {
     "read": 60,
     "write": 60,
     "exit": 3
-  }
+  },
+  "rate_limit": 100
 }

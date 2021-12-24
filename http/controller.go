@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/EvisuXiao/andrews-common/exception"
-	"github.com/EvisuXiao/andrews-common/translation"
+	cValidator "github.com/EvisuXiao/andrews-common/pkg/validator"
 	"github.com/EvisuXiao/andrews-common/utils"
 
 	"github.com/gin-gonic/gin"
@@ -45,7 +45,7 @@ func (c *Controller) FailureResponseWithCode(ctx *gin.Context, code int, desc ..
 		}
 		if descLen > 1 && !utils.IsEmpty(desc[1]) {
 			if err, ok := desc[1].(validator.ValidationErrors); ok {
-				desc[1] = translation.TranslateByEn(err)
+				desc[1] = cValidator.Translate(err)
 			}
 			output.SetData(fmt.Sprint(desc[1]))
 		}

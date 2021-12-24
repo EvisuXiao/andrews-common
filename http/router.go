@@ -7,7 +7,6 @@ import (
 
 	"github.com/EvisuXiao/andrews-common/config"
 	"github.com/EvisuXiao/andrews-common/logging"
-	"github.com/EvisuXiao/andrews-common/translation"
 	"github.com/EvisuXiao/andrews-common/utils"
 )
 
@@ -48,7 +47,6 @@ func InitRouter(groups ...*MainRouterGroup) *gin.Engine {
 	for _, group := range groups {
 		initRouterGroup(r.Group(group.Path, toRawHandlers(group.Middleware)...), group.Groups)
 	}
-	translation.Init()
 	return r
 }
 

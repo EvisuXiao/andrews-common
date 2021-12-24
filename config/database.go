@@ -33,11 +33,11 @@ func (c *Databases) Name() string {
 }
 
 func (c *Databases) Source() string {
-	return ""
+	return SourceDefault
 }
 
-func (c *Databases) Check() error {
-	return nil
+func (c *Databases) FileType() string {
+	return TypeJson
 }
 
 func (c *Databases) Init() {

@@ -1,0 +1,10 @@
+{
+  "nacos": {
+    "hosts": [
+      "http://www.xxx.com"
+    ],
+    "namespace": "",
+    "username": "user",
+    "password": "passwd"
+  }
+}

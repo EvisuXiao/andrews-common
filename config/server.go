@@ -1,7 +1,6 @@
 package config
 
 import (
-	"fmt"
 	"time"
 )
 
@@ -13,7 +12,8 @@ const (
 
 type Server struct {
 	Env       string  `json:"env" default:"testing"`
-	Port      int     `json:"port"`
+	Port      int     `json:"port" binding:"gt=0,lt=65536"`
+	Weight    float64 `json:"weight" default:"100"`
 	Timeout   Timeout `json:"timeout"`
 	RateLimit int     `json:"rate_limit"`
 }
@@ -38,14 +38,11 @@ func (c *Server) Name() string {
 }
 
 func (c *Server) Source() string {
-	return ""
+	return SourceDefault
 }
 
-func (c *Server) Check() error {
-	if c.Port <= 0 || c.Port >= 65535 {
-		return fmt.Errorf("port(%d) is invalid", c.Port)
-	}
-	return nil
+func (c *Server) FileType() string {
+	return TypeJson
 }
 
 func (c *Server) Init() {

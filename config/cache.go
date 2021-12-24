@@ -30,11 +30,11 @@ func (c *Caches) Name() string {
 }
 
 func (c *Caches) Source() string {
-	return ""
+	return SourceDefault
 }
 
-func (c *Caches) Check() error {
-	return nil
+func (c *Caches) FileType() string {
+	return TypeJson
 }
 
 func (c *Caches) Init() {

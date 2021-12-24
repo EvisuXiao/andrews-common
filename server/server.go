@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	common "github.com/EvisuXiao/andrews-common"
 	"github.com/EvisuXiao/andrews-common/config"
 	"github.com/EvisuXiao/andrews-common/logging"
 	"github.com/EvisuXiao/andrews-common/utils"
@@ -30,6 +31,7 @@ type Option struct {
 }
 
 func StartServer(s IServer) {
+	initDiscoveryAdapter()
 	r := Runner{
 		srv:     s,
 		signal:  make(chan os.Signal, 1),
@@ -48,7 +50,7 @@ func (r *Runner) Stop() {
 	logging.Info("Server is quitting")
 	ctx, cancel := context.WithTimeout(context.Background(), r.srv.Config().Timeout.Exit)
 	defer cancel()
-	go r.srv.OnStop()
+	go r.onStop()
 	if err := r.srv.Stop(); utils.HasErr(err) {
 		logging.Error("Stop server err: %+v", err)
 		close(r.process)
@@ -61,10 +63,24 @@ func (r *Runner) Stop() {
 	close(r.process)
 }
 
+func (r *Runner) onStop() {
+	if err := discoveryAdapter.UnregisterInstance(r.srv.Config().Port); utils.HasErr(err) {
+		logging.Error("Unregister server instance err: %+v", err)
+	}
+	common.Stop()
+	r.srv.OnStop()
+}
+
 func (r *Runner) run() {
+	port := r.srv.Config().Port
+	weight := r.srv.Config().Weight
 	logging.Info("Service %s is running!", config.GetServiceName())
-	logging.Info("Start server with listening port %d", config.GetServerConfig().Port)
+	logging.Info("Start server with listening port %d, weight %f", port, weight)
 	logging.Info("The process id is %d", os.Getpid())
+	if err := discoveryAdapter.RegisterInstance(port, weight, nil); utils.HasErr(err) {
+		logging.Error("Register server instance err: %+v", err)
+		close(r.process)
+	}
 	if err := r.srv.Start(); utils.HasErr(err) {
 		logging.Error("Start server err: %+v", err)
 		close(r.process)

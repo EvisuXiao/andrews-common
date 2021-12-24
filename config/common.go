@@ -10,7 +10,7 @@ type Common struct {
 	DateFormat           string `json:"date_format" default:"2006-01-02"`
 	DatetimeFormat       string `json:"datetime_format" default:"2006-01-02 15:04:05"`
 	SerialDatetimeFormat string `json:"serial_datetime_format" default:"20060102150405"`
-	TempPath             string `json:"temp_path" default:"runtime/"`
+	TempPath             string `json:"temp_path" default:"temp/"`
 }
 
 var CommonConfig = &Common{}
@@ -28,11 +28,11 @@ func (c *Common) Name() string {
 }
 
 func (c *Common) Source() string {
-	return ""
+	return SourceDefault
 }
 
-func (c *Common) Check() error {
-	return nil
+func (c *Common) FileType() string {
+	return TypeJson
 }
 
 func (c *Common) Init() {
