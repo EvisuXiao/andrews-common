@@ -47,10 +47,10 @@ func Init() {
 func (db *database) setup() {
 	cnf, ok := (*config.GetDatabaseConfigs())[db.name]
 	if !ok {
-		logging.Fatal("Init: database connection name not found")
+		logging.Fatal("Init: database %s connection name not found", db.name)
 	}
 	if utils.IsEmpty(cnf.Master) {
-		logging.Fatal("Init: master database must be valid")
+		logging.Fatal("Init:database %s master database must be valid", db.name)
 	}
 	db.db = conn(cnf)
 	logging.Info("Database %s setup successfully!", db.name)
@@ -125,7 +125,7 @@ func dbDialer(driver string, cnf *config.DatabaseConnection) gorm.Dialector {
  * @return string
  */
 func mysqlDSN(cnf *config.DatabaseConnection) string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4", cnf.User, cnf.Password, cnf.Host, cnf.Port, cnf.Database)
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=True&charset=utf8mb4&loc=Local", cnf.User, cnf.Password, cnf.Host, cnf.Port, cnf.Database)
 }
 
 /**

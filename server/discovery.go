@@ -10,7 +10,7 @@ type IDiscovery interface {
 	UnregisterInstance(int) error
 }
 
-var discoveryAdapter IDiscovery
+var discoverer IDiscovery
 
 func initDiscoveryAdapter() {
 	initNacos()
@@ -18,9 +18,9 @@ func initDiscoveryAdapter() {
 
 func initNacos() {
 	nacos.InitNaming(config.GetCenterConfig().Nacos)
-	discoveryAdapter = nacos.GetNamingClient()
+	discoverer = nacos.GetNamingClient()
 }
 
 func GetDiscoverer() IDiscovery {
-	return discoveryAdapter
+	return discoverer
 }

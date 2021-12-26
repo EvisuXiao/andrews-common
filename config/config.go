@@ -29,7 +29,6 @@ var (
 	ServiceName string
 	dir         string
 	source      string
-	center      string
 	configs     []IConfig
 	inited      bool
 )
@@ -62,11 +61,15 @@ func RegisterConfig(cfg IConfig) {
 }
 
 func parseFlag() {
-	flag.StringVar(&dir, "dir", "./", "The application directory")
-	flag.StringVar(&source, "source", SourceFile, fmt.Sprintf("The source of config file. %s, %s is available", SourceFile, SourceCenter))
-	flag.StringVar(&center, "center", CenterNacos, fmt.Sprintf("The config center adapter. %s is supported, %s is in the todo list", CenterNacos, CenterApollo))
+	flag.StringVar(&dir, "dir", "./", "The application root directory")
+	flag.StringVar(&env, "env", "testing", fmt.Sprintf("The application environment. %s, %s, %s is available. Default: %s", EnvLocal, EnvTesting, EnvProd, EnvTesting))
+	flag.StringVar(&source, "source", SourceFile, fmt.Sprintf("The source of config file. %s, %s is available. Default: %s", SourceFile, SourceCenter, SourceFile))
+	flag.StringVar(&center, "center", CenterNacos, fmt.Sprintf("The config center adapter. %s is supported, %s is in the todo list. Default: %s", CenterNacos, CenterApollo, CenterNacos))
 	flag.Parse()
 	dir = utils.AddDirSuffixSlash(dir)
+	if env != EnvLocal && env != EnvProd {
+		env = EnvTesting
+	}
 	source = strings.ToLower(source)
 }
 

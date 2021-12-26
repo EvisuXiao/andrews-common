@@ -6,20 +6,20 @@ import (
 
 type Databases map[string]*Database
 type Database struct {
-	Driver       string
-	Separation   bool
-	Master       *DatabaseConnection
-	Slave        *DatabaseConnection
-	TablePrefix  string
-	PoolSize     int           `default:"50"`
-	PoolLifeTime time.Duration `default:"3600"`
+	Driver       string              `json:"driver" binding:"required"`
+	Separation   bool                `json:"separation"`
+	Master       *DatabaseConnection `json:"master"`
+	Slave        *DatabaseConnection `json:"slave"`
+	TablePrefix  string              `json:"table_prefix"`
+	PoolSize     int                 `json:"pool_size "default:"50"`
+	PoolLifeTime time.Duration       `json:"pool_life_time "default:"3600"`
 }
 type DatabaseConnection struct {
-	Host     string
-	Port     int
-	User     string
-	Password string
-	Database string
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	User     string `json:"user"`
+	Password string `json:"password"`
+	Database string `json:"database"`
 }
 
 var DatabaseConfigs = &Databases{}

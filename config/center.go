@@ -25,6 +25,7 @@ type Center struct {
 }
 
 var (
+	center       string
 	centerClient ICenter
 	centerConfig = &Center{}
 )

@@ -64,8 +64,10 @@ func (r *Runner) Stop() {
 }
 
 func (r *Runner) onStop() {
-	if err := discoveryAdapter.UnregisterInstance(r.srv.Config().Port); utils.HasErr(err) {
-		logging.Error("Unregister server instance err: %+v", err)
+	if r.srv.Config().Discovery {
+		if err := discoverer.UnregisterInstance(r.srv.Config().Port); utils.HasErr(err) {
+			logging.Error("Unregister server instance err: %+v", err)
+		}
 	}
 	common.Stop()
 	r.srv.OnStop()
@@ -77,9 +79,11 @@ func (r *Runner) run() {
 	logging.Info("Service %s is running!", config.GetServiceName())
 	logging.Info("Start server with listening port %d, weight %f", port, weight)
 	logging.Info("The process id is %d", os.Getpid())
-	if err := discoveryAdapter.RegisterInstance(port, weight, nil); utils.HasErr(err) {
-		logging.Error("Register server instance err: %+v", err)
-		close(r.process)
+	if r.srv.Config().Discovery {
+		if err := discoverer.RegisterInstance(port, weight, nil); utils.HasErr(err) {
+			logging.Error("Register server instance err: %+v", err)
+			close(r.process)
+		}
 	}
 	if err := r.srv.Start(); utils.HasErr(err) {
 		logging.Error("Start server err: %+v", err)

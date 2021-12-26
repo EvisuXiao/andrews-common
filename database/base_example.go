@@ -6,9 +6,9 @@ import (
 
 var dbName = "foo"
 
-func init() {
-	RegisterDatabase(dbName)
-}
+//func init() {
+//	RegisterDatabase(dbName)
+//}
 
 // Manager 只需要ID的模型嵌套此结构
 type Manager struct {

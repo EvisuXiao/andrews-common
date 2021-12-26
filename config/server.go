@@ -11,8 +11,8 @@ const (
 )
 
 type Server struct {
-	Env       string  `json:"env" default:"testing"`
 	Port      int     `json:"port" binding:"gt=0,lt=65536"`
+	Discovery bool    `json:"discovery" default:"true"`
 	Weight    float64 `json:"weight" default:"100"`
 	Timeout   Timeout `json:"timeout"`
 	RateLimit int     `json:"rate_limit"`
@@ -23,7 +23,10 @@ type Timeout struct {
 	Exit  time.Duration `json:"exit" default:"3"`
 }
 
-var ServerConfig = &Server{}
+var (
+	env          string
+	ServerConfig = &Server{}
+)
 
 func init() {
 	RegisterConfig(ServerConfig)
@@ -46,22 +49,23 @@ func (c *Server) FileType() string {
 }
 
 func (c *Server) Init() {
-	if c.Env != EnvLocal && c.Env != EnvProd {
-		c.Env = EnvTesting
-	}
 	c.Timeout.Read = c.Timeout.Read * time.Second
 	c.Timeout.Write = c.Timeout.Write * time.Second
 	c.Timeout.Exit = c.Timeout.Exit * time.Second
 }
 
+func GetEnv() string {
+	return env
+}
+
 func IsLocalEnv() bool {
-	return ServerConfig.Env == EnvLocal
+	return env == EnvLocal
 }
 
 func IsTestingEnv() bool {
-	return ServerConfig.Env == EnvTesting
+	return env == EnvTesting
 }
 
 func IsProdEnv() bool {
-	return ServerConfig.Env == EnvProd
+	return env == EnvProd
 }

@@ -2,6 +2,8 @@ package validator
 
 import (
 	"errors"
+	"reflect"
+	"time"
 
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/locales"
@@ -55,16 +57,48 @@ func SwitchLocale(l string) error {
 }
 
 func Check(v interface{}) error {
-	return Translate(GetValidator().Struct(v))
+	var err error
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Ptr {
+		rv = rv.Elem()
+	}
+	switch rv.Kind() {
+	case reflect.Struct:
+		return Translate(validate.Struct(v))
+	case reflect.Array, reflect.Slice:
+		for i := 0; i < rv.Len(); i++ {
+			if rv.Index(i).CanInterface() {
+				if err = Check(rv.Index(i).Interface()); utils.HasErr(err) {
+					return err
+				}
+			}
+		}
+		return nil
+	case reflect.Map:
+		for _, mrv := range rv.MapKeys() {
+			if rv.MapIndex(mrv).CanInterface() {
+				if err = Check(rv.MapIndex(mrv).Interface()); utils.HasErr(err) {
+					return err
+				}
+			}
+		}
+		return nil
+	default:
+		if rv.Type() == reflect.TypeOf(time.Time{}) {
+			return Translate(validate.Struct(v))
+		}
+		return errors.New("not struct type")
+	}
 }
 
 func Translate(err error) error {
 	if !utils.HasErr(err) {
 		return nil
 	}
-	validationErr := err.(validator.ValidationErrors)
-	for _, vErr := range validationErr {
-		return errors.New(vErr.Translate(GetTranslator()))
+	if validationErr, ok := err.(validator.ValidationErrors); ok {
+		for _, vErr := range validationErr {
+			return errors.New(vErr.Translate(GetTranslator()))
+		}
 	}
 	return err
 }

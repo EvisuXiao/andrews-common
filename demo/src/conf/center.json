@@ -5,6 +5,8 @@
     ],
     "namespace": "",
     "username": "user",
-    "password": "passwd"
+    "password": "passwd",
+    "group_name": "",
+    "temp_path": ""
   }
 }

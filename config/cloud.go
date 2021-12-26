@@ -3,6 +3,10 @@ package config
 import "time"
 
 type Cloud struct {
+	Tencent *Tencent `json:"tencent"`
+}
+
+type Tencent struct {
 	SecretId  string `json:"secret_id"`
 	SecretKey string `json:"secret_key"`
 	Sms       *Sms   `json:"sms"`
@@ -42,5 +46,5 @@ func (c *Cloud) FileType() string {
 }
 
 func (c *Cloud) Init() {
-	c.Sms.Templates.Capcha.Expired = c.Sms.Templates.Capcha.Expired * time.Minute
+	c.Tencent.Sms.Templates.Capcha.Expired = c.Tencent.Sms.Templates.Capcha.Expired * time.Minute
 }

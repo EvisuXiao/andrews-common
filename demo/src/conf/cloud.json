@@ -1,13 +1,15 @@
 {
-  "secret_id": "aaaaaa",
-  "secret_key": "bbbbb",
-  "sms": {
-    "app_id": "",
-    "sign": "",
-    "templates": {
-      "capcha": {
-        "id": "",
-        "expired": 2
+  "tencent": {
+    "secret_id": "aaaaaa",
+    "secret_key": "bbbbb",
+    "sms": {
+      "app_id": "",
+      "sign": "",
+      "templates": {
+        "capcha": {
+          "id": "",
+          "expired": 2
+        }
       }
     }
   }

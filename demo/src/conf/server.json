@@ -1,6 +1,6 @@
 {
-  "env": "local",
   "port": 28000,
+  "discovery": true,
   "weight": 100.0,
   "timeout": {
     "read": 60,
