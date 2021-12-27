@@ -34,6 +34,10 @@ func GetCenterConfig() *Center {
 	return centerConfig
 }
 
+func GetNacosConfig() *constants.Nacos {
+	return GetCenterConfig().Nacos
+}
+
 func (c *Center) Name() string {
 	return "center"
 }
@@ -58,17 +62,16 @@ func (c *Center) initNacos() {
 }
 
 func initCenter() {
-	if source != SourceCenter {
-		return
+	if err := MapTo(centerConfig); utils.HasErr(err) {
+		log.Printf("[WARINING] Init warning: map conf center err: %+v\n", err)
 	}
-	MapTo(centerConfig)
 	if center == CenterNacos {
 		initNacosCenter()
 	}
 }
 
 func initNacosCenter() {
-	nacos.InitConfig(GetCenterConfig().Nacos)
+	nacos.InitConfig(GetNacosConfig())
 	centerClient = nacos.GetConfigClient()
 }
 

@@ -27,9 +27,13 @@ type Client struct {
 	prefix string
 }
 
-var clients []*Client
+var (
+	configs config.Redises
+	clients []*Client
+)
 
 func Init() {
+	configs = config.GetRedisConfigs()
 	for _, c := range clients {
 		c.setup()
 	}
@@ -40,61 +44,61 @@ func RegisterRedis(c *Client) {
 }
 
 func (c *Client) setup() {
-	cnf, ok := config.GetCacheConfigs().Redis[c.Name]
+	cfg, ok := configs[c.Name]
 	if !ok {
 		logging.Fatal("Init: redis(%s) connection name not found", c.Name)
 	}
-	switch cnf.Driver {
+	switch cfg.Driver {
 	case DriverStandalone:
-		c.connClient(cnf)
+		c.connClient(cfg)
 	case DriverCluster:
-		c.connClusterClient(cnf)
+		c.connClusterClient(cfg)
 	case DriverSentinel:
-		c.connSentinelClient(cnf)
+		c.connSentinelClient(cfg)
 	default:
-		logging.Fatal("Init: unknown redis driver: %s", cnf.Driver)
+		logging.Fatal("Init: unknown redis driver: %s", cfg.Driver)
 	}
 	pong, err := c.redis.Ping(c.Ctx).Result()
 	if utils.HasErr(err) {
-		logging.Fatal("Setup: redis(%s) connection failed: %+v", c.Name, err)
+		logging.Fatal("Init: redis(%s) connection failed: %+v", c.Name, err)
 	}
 	if utils.IsEmpty(c.Ctx) {
 		c.Ctx = context.Background()
 	}
-	logging.Info("Redis setup(%s) successfully: %s", c.Name, pong)
+	logging.Info("Redis init(%s) successfully: %s", c.Name, pong)
 }
 
-func (c *Client) connClient(cnf *config.Redis) {
+func (c *Client) connClient(cfg *config.Redis) {
 	c.redis = redis.NewClient(&redis.Options{
-		Addr:         fmt.Sprintf("%s:%s", cnf.Host, cnf.Port),
-		Password:     cnf.Password,
-		DB:           cnf.Database,
-		ReadTimeout:  cnf.Timeout.Read,
-		WriteTimeout: cnf.Timeout.Write,
+		Addr:         fmt.Sprintf("%s:%s", cfg.Host, cfg.Port),
+		Password:     cfg.Password,
+		DB:           cfg.Database,
+		ReadTimeout:  cfg.Timeout.Read,
+		WriteTimeout: cfg.Timeout.Write,
 	})
-	c.prefix = cnf.Prefix
+	c.prefix = cfg.Prefix
 }
 
-func (c *Client) connSentinelClient(cnf *config.Redis) {
+func (c *Client) connSentinelClient(cfg *config.Redis) {
 	c.redis = redis.NewFailoverClient(&redis.FailoverOptions{
-		MasterName:    cnf.MasterName,
-		SentinelAddrs: cnf.Hosts,
-		Password:      cnf.Password,
-		DB:            cnf.Database,
-		ReadTimeout:   cnf.Timeout.Read,
-		WriteTimeout:  cnf.Timeout.Write,
+		MasterName:    cfg.MasterName,
+		SentinelAddrs: cfg.Hosts,
+		Password:      cfg.Password,
+		DB:            cfg.Database,
+		ReadTimeout:   cfg.Timeout.Read,
+		WriteTimeout:  cfg.Timeout.Write,
 	})
-	c.prefix = cnf.Prefix
+	c.prefix = cfg.Prefix
 }
 
-func (c *Client) connClusterClient(cnf *config.Redis) {
+func (c *Client) connClusterClient(cfg *config.Redis) {
 	c.redis = redis.NewClusterClient(&redis.ClusterOptions{
-		Addrs:        cnf.Hosts,
-		Password:     cnf.Password,
-		ReadTimeout:  cnf.Timeout.Read,
-		WriteTimeout: cnf.Timeout.Write,
+		Addrs:        cfg.Hosts,
+		Password:     cfg.Password,
+		ReadTimeout:  cfg.Timeout.Read,
+		WriteTimeout: cfg.Timeout.Write,
 	})
-	c.prefix = cnf.Prefix
+	c.prefix = cfg.Prefix
 }
 
 func (c *Client) GetClient() redis.Cmdable {

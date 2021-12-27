@@ -33,6 +33,10 @@ func GetCloudConfig() *Cloud {
 	return CloudConfig
 }
 
+func GetTencentConfig() *Tencent {
+	return GetCloudConfig().Tencent
+}
+
 func (c *Cloud) Name() string {
 	return "cloud"
 }

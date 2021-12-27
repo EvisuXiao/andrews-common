@@ -24,8 +24,8 @@ type DatabaseConnection struct {
 
 var DatabaseConfigs = &Databases{}
 
-func GetDatabaseConfigs() *Databases {
-	return DatabaseConfigs
+func GetDatabaseConfigs() Databases {
+	return *DatabaseConfigs
 }
 
 func (c *Databases) Name() string {

@@ -5,8 +5,9 @@ import (
 )
 
 type Caches struct {
-	Redis map[string]*Redis
+	Redis Redises
 }
+
 type Redis struct {
 	Driver     string
 	MasterName string
@@ -19,10 +20,16 @@ type Redis struct {
 	Timeout    Timeout
 }
 
+type Redises map[string]*Redis
+
 var CacheConfigs = &Caches{}
 
 func GetCacheConfigs() *Caches {
 	return CacheConfigs
+}
+
+func GetRedisConfigs() Redises {
+	return GetCacheConfigs().Redis
 }
 
 func (c *Caches) Name() string {

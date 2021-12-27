@@ -75,22 +75,24 @@ func parseFlag() {
 
 func loadConf() {
 	log.Println("[INFO] Load configuration")
+	var err error
 	for _, cfg := range configs {
-		MapTo(cfg)
+		if err = MapTo(cfg); utils.HasErr(err) {
+			log.Fatalf("[FATAL] Init fatal: map conf %s err: %+v\n", cfg.Name(), err)
+		}
+		log.Printf("[INFO] %s configuration loaded successfully!\n", cfg.Name())
 	}
 }
 
-func MapTo(cfg IConfig) {
-	name := cfg.Name()
+func MapTo(cfg IConfig) error {
 	read, err := readContent(cfg)
 	if utils.HasErr(err) {
-		log.Fatalf("[FATAL] Init fatal: read conf %s err: %+v\n", name, err)
+		return err
 	}
-	err = mapCfg(read, cfg)
-	if utils.HasErr(err) {
-		log.Fatalf("[FATAL] Init fatal: map conf %s err: %+v\n", name, err)
+	if err = mapCfg(read, cfg); utils.HasErr(err) {
+		return err
 	}
-	log.Printf("[INFO] %s configuration loaded successfully!\n", name)
+	return nil
 }
 
 func Stop() error {

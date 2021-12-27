@@ -20,8 +20,8 @@ func init() {
 // 家里执行: go run demo/demo.go -dir=/Users/evisu/Workspace/Andrews/app -env=local -source=center
 func main() {
 	logging.Info("All Environment initialized successfully!")
-	//startHttpServer()
-	modelTest()
+	startHttpServer()
+	//modelTest()
 }
 
 func startHttpServer() {
@@ -36,7 +36,7 @@ func quitTest() {
 
 func modelTest() {
 	database.Init()
-	m := demo.NewUserModel()
+	m := demo.NewFooModel()
 	rows, err := m.GetRows(database.NewOptions())
-	fmt.Println(rows[0].Oauth, err)
+	fmt.Println(rows[0], err)
 }
