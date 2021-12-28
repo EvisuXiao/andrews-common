@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"strings"
 	"syscall"
 	"time"
 
@@ -24,11 +25,13 @@ type IServer interface {
 }
 
 type Runner struct {
-	srv       IServer
-	signal    chan os.Signal
-	process   chan bool
-	cron      *cron.Cron
-	startTime time.Time
+	srv            IServer
+	signal         chan os.Signal
+	process        chan bool
+	jobName        string
+	startTime      time.Time
+	lastWarningCnt int
+	lastErrCnt     int
 }
 
 type Option struct {
@@ -41,7 +44,6 @@ func StartServer(s IServer) {
 		srv:       s,
 		signal:    make(chan os.Signal, 1),
 		process:   make(chan bool, 1),
-		cron:      cron.NewCron(),
 		startTime: utils.LocalTime(),
 	}
 	r.Run()
@@ -51,7 +53,6 @@ func (r *Runner) Run() {
 	if r.srv.Config().Discovery {
 		initDiscoverer()
 	}
-	r.cron.Start()
 	go r.run()
 	go r.signalHandler()
 	<-r.process
@@ -76,7 +77,7 @@ func (r *Runner) Stop() {
 }
 
 func (r *Runner) onStop() {
-	r.cron.Stop()
+	_ = cron.RemoveJob(r.jobName)
 	if err := discoverer.UnregisterInstance(r.srv.Config().Port); utils.HasErr(err) {
 		logging.Error("Unregister server instance err: %+v", err)
 	}
@@ -90,12 +91,16 @@ func (r *Runner) run() {
 	logging.Info("Service %s is running!", config.GetServiceName())
 	logging.Info("Start server with listening port %d, weight %f", port, weight)
 	logging.Info("The process id is %d", os.Getpid())
-	if err := discoverer.RegisterInstance(port, weight, r.buildMetaData()); utils.HasErr(err) {
+	var err error
+	if err = discoverer.RegisterInstance(port, weight, r.buildMetaData()); utils.HasErr(err) {
 		logging.Error("Register server instance err: %+v", err)
 		close(r.process)
 	}
-	_, _ = r.cron.AddJob("@every 30s", r.updateMetaData, false)
-	if err := r.srv.Start(); utils.HasErr(err) {
+	r.jobName = fmt.Sprintf("updateMetaData%d", r.srv.Config().Port)
+	if err = cron.AddJob(r.jobName, "@every 30s", r.updateMetaData, false); utils.HasErr(err) {
+		logging.Error("Add job %s err: %+v", r.jobName, err)
+	}
+	if err = r.srv.Start(); utils.HasErr(err) {
 		logging.Error("Start server err: %+v", err)
 		close(r.process)
 	}
@@ -120,12 +125,21 @@ func (r *Runner) buildMetaData() map[string]string {
 	memStats := &runtime.MemStats{}
 	runtime.ReadMemStats(memStats)
 	now := utils.LocalTime()
+	warningCnt := logging.GetWarningCount()
+	warningIncrement := warningCnt - r.lastWarningCnt
+	r.lastWarningCnt = warningCnt
+	errCnt := logging.GetErrorCount()
+	errIncrement := errCnt - r.lastErrCnt
+	r.lastErrCnt = errCnt
 	return map[string]string{
 		"register_time":     utils.LocalTimeStr(r.startTime),
 		"update_time":       utils.LocalTimeStr(now),
 		"running_duration":  fmt.Sprint(now.Sub(r.startTime)),
-		"warning_log_count": fmt.Sprint(logging.GetWarningCount()),
-		"error_log_count":   fmt.Sprint(logging.GetErrorCount()),
+		"warning_count":     fmt.Sprint(warningCnt),
+		"warning_increment": fmt.Sprint(warningIncrement),
+		"error_count":       fmt.Sprint(errCnt),
+		"error_increment":   fmt.Sprint(errIncrement),
+		"cron_names":        strings.Join(cron.GetJobNames(), ","),
 		"app_env":           config.GetEnv(),
 		"go_version":        runtime.Version(),
 		"os":                runtime.GOOS,

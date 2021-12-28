@@ -1,60 +1,66 @@
 package cron
 
 import (
+	"errors"
+	"sync"
+
 	"github.com/robfig/cron/v3"
 
 	"github.com/EvisuXiao/andrews-common/utils"
 )
 
-type Cron struct {
-	cron *cron.Cron
-	Jobs []*Job
-}
-
-type Job struct {
+type job struct {
 	id      cron.EntryID
 	period  string
 	handler func()
 }
 
-func NewCron() *Cron {
-	return &Cron{cron: cron.New()}
+var (
+	c    = cron.New()
+	mu   sync.Mutex
+	jobs = make(map[string]*job)
+)
+
+func Start() {
+	c.Start()
 }
 
-func (c *Cron) AddJob(period string, handler func(), preload bool) (cron.EntryID, error) {
-	id, err := c.cron.AddFunc(period, handler)
-	if utils.HasErr(err) {
-		return 0, err
+func Stop() {
+	c.Stop()
+}
+
+func AddJob(name, period string, handler func(), preload bool) error {
+	mu.Lock()
+	defer mu.Unlock()
+	if _, ok := jobs[name]; ok {
+		return errors.New("job name is already exist")
 	}
+	id, err := c.AddFunc(period, handler)
+	if utils.HasErr(err) {
+		return err
+	}
+	jobs[name] = &job{id, period, handler}
 	if preload {
 		go handler()
 	}
-	c.Jobs = append(c.Jobs, &Job{id, period, handler})
-	return id, nil
+	return nil
 }
 
-func (c *Cron) RemoveJob(id cron.EntryID) {
-	c.cron.Remove(id)
-	var jobs []*Job
-	for _, j := range c.Jobs {
-		if j.id != id {
-			jobs = append(jobs, j)
-		}
+func RemoveJob(name string) error {
+	mu.Lock()
+	defer mu.Unlock()
+	j, ok := jobs[name]
+	if !ok {
+		return errors.New("job name is not found")
 	}
-	c.Jobs = jobs
+	c.Remove(j.id)
+	return nil
 }
 
-func (c *Cron) HasJob() bool {
-	return !utils.IsEmpty(c.Jobs)
-}
-
-func (c *Cron) Start() {
-	//if !c.HasJob() {
-	//	return
-	//}
-	c.cron.Start()
-}
-
-func (c *Cron) Stop() {
-	c.cron.Stop()
+func GetJobNames() []string {
+	var names []string
+	for name, _ := range jobs {
+		utils.SliceAddStringItem(&names, name)
+	}
+	return names
 }
