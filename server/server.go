@@ -12,6 +12,7 @@ import (
 	common "github.com/EvisuXiao/andrews-common"
 	"github.com/EvisuXiao/andrews-common/config"
 	"github.com/EvisuXiao/andrews-common/logging"
+	"github.com/EvisuXiao/andrews-common/pkg/cron"
 	"github.com/EvisuXiao/andrews-common/utils"
 )
 
@@ -23,9 +24,11 @@ type IServer interface {
 }
 
 type Runner struct {
-	srv     IServer
-	signal  chan os.Signal
-	process chan bool
+	srv       IServer
+	signal    chan os.Signal
+	process   chan bool
+	cron      *cron.Cron
+	startTime time.Time
 }
 
 type Option struct {
@@ -35,9 +38,11 @@ type Option struct {
 
 func StartServer(s IServer) {
 	r := Runner{
-		srv:     s,
-		signal:  make(chan os.Signal, 1),
-		process: make(chan bool, 1),
+		srv:       s,
+		signal:    make(chan os.Signal, 1),
+		process:   make(chan bool, 1),
+		cron:      cron.NewCron(),
+		startTime: utils.LocalTime(),
 	}
 	r.Run()
 }
@@ -46,12 +51,14 @@ func (r *Runner) Run() {
 	if r.srv.Config().Discovery {
 		initDiscoverer()
 	}
+	r.cron.Start()
 	go r.run()
 	go r.signalHandler()
 	<-r.process
 }
 
 func (r *Runner) Stop() {
+	logging.Info("Server is running with %v", utils.LocalTime().Sub(r.startTime))
 	logging.Info("Server is quitting")
 	ctx, cancel := context.WithTimeout(context.Background(), r.srv.Config().Timeout.Exit)
 	defer cancel()
@@ -69,6 +76,7 @@ func (r *Runner) Stop() {
 }
 
 func (r *Runner) onStop() {
+	r.cron.Stop()
 	if err := discoverer.UnregisterInstance(r.srv.Config().Port); utils.HasErr(err) {
 		logging.Error("Unregister server instance err: %+v", err)
 	}
@@ -86,6 +94,7 @@ func (r *Runner) run() {
 		logging.Error("Register server instance err: %+v", err)
 		close(r.process)
 	}
+	_, _ = r.cron.AddJob("@every 30s", r.updateMetaData, false)
 	if err := r.srv.Start(); utils.HasErr(err) {
 		logging.Error("Start server err: %+v", err)
 		close(r.process)
@@ -100,21 +109,32 @@ func (r *Runner) signalHandler() {
 	}
 }
 
+func (r *Runner) updateMetaData() {
+	if err := discoverer.UpdateInstance(r.srv.Config().Port, r.srv.Config().Weight, r.buildMetaData()); utils.HasErr(err) {
+		logging.Error("Update server instance err: %+v", err)
+	}
+}
+
 func (r *Runner) buildMetaData() map[string]string {
 	machine, _ := os.Hostname()
 	memStats := &runtime.MemStats{}
 	runtime.ReadMemStats(memStats)
+	now := utils.LocalTime()
 	return map[string]string{
-		"register_time": utils.LocalTimeStr(time.Now()),
-		"app_env":       config.GetEnv(),
-		"go_version":    runtime.Version(),
-		"os":            runtime.GOOS,
-		"arch":          runtime.GOARCH,
-		"machine_name":  machine,
-		"pid":           fmt.Sprint(os.Getpid()),
-		"cpu_num":       fmt.Sprint(runtime.NumCPU()),
-		"memory":        fmt.Sprint(memStats.Sys),
-		"goroutine_num": fmt.Sprint(runtime.NumGoroutine()),
+		"register_time":     utils.LocalTimeStr(r.startTime),
+		"update_time":       utils.LocalTimeStr(now),
+		"running_duration":  fmt.Sprint(now.Sub(r.startTime)),
+		"warning_log_count": fmt.Sprint(logging.GetWarningCount()),
+		"error_log_count":   fmt.Sprint(logging.GetErrorCount()),
+		"app_env":           config.GetEnv(),
+		"go_version":        runtime.Version(),
+		"os":                runtime.GOOS,
+		"arch":              runtime.GOARCH,
+		"machine_name":      machine,
+		"pid":               fmt.Sprint(os.Getpid()),
+		"cpu_num":           fmt.Sprint(runtime.NumCPU()),
+		"memory":            utils.CalcBytesSize(memStats.Sys),
+		"goroutine_num":     fmt.Sprint(runtime.NumGoroutine()),
 	}
 }
 

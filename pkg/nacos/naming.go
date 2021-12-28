@@ -19,6 +19,7 @@ type NamingClient struct {
 
 var (
 	namingClient = &NamingClient{}
+	ip           = utils.GetLocalIP()
 )
 
 func InitNaming(cfg *constants.Nacos) {
@@ -38,7 +39,7 @@ func GetNamingClient() *NamingClient {
 
 func (c *NamingClient) RegisterInstance(port int, weight float64, meta map[string]string) error {
 	param := vo.RegisterInstanceParam{
-		Ip:          utils.GetLocalIP(),
+		Ip:          ip,
 		Port:        uint64(port),
 		ServiceName: c.serviceName,
 		GroupName:   c.groupName,
@@ -54,12 +55,27 @@ func (c *NamingClient) RegisterInstance(port int, weight float64, meta map[strin
 
 func (c *NamingClient) UnregisterInstance(port int) error {
 	param := vo.DeregisterInstanceParam{
-		Ip:          utils.GetLocalIP(),
+		Ip:          ip,
 		Port:        uint64(port),
 		ServiceName: c.serviceName,
 		GroupName:   c.groupName,
 		Ephemeral:   true,
 	}
 	_, err := namingClient.client.DeregisterInstance(param)
+	return err
+}
+
+func (c *NamingClient) UpdateInstance(port int, weight float64, meta map[string]string) error {
+	param := vo.UpdateInstanceParam{
+		Ip:          ip,
+		Port:        uint64(port),
+		ServiceName: c.serviceName,
+		GroupName:   c.groupName,
+		Weight:      weight,
+		Enable:      true,
+		Ephemeral:   true,
+		Metadata:    meta,
+	}
+	_, err := namingClient.client.UpdateInstance(param)
 	return err
 }

@@ -15,16 +15,10 @@ type Job struct {
 	id      cron.EntryID
 	period  string
 	handler func()
-	preload bool
 }
 
-var c = &Cron{}
-
 func NewCron() *Cron {
-	if utils.IsEmpty(c.cron) {
-		c.cron = cron.New()
-	}
-	return c
+	return &Cron{cron: cron.New()}
 }
 
 func (c *Cron) AddJob(period string, handler func(), preload bool) (cron.EntryID, error) {
@@ -32,7 +26,10 @@ func (c *Cron) AddJob(period string, handler func(), preload bool) (cron.EntryID
 	if utils.HasErr(err) {
 		return 0, err
 	}
-	c.Jobs = append(c.Jobs, &Job{id, period, handler, preload})
+	if preload {
+		go handler()
+	}
+	c.Jobs = append(c.Jobs, &Job{id, period, handler})
 	return id, nil
 }
 
@@ -52,14 +49,9 @@ func (c *Cron) HasJob() bool {
 }
 
 func (c *Cron) Start() {
-	if !c.HasJob() {
-		return
-	}
-	for _, j := range c.Jobs {
-		if j.preload {
-			go j.handler()
-		}
-	}
+	//if !c.HasJob() {
+	//	return
+	//}
 	c.cron.Start()
 }
 

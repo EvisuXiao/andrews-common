@@ -11,6 +11,7 @@ import (
 type IDiscovery interface {
 	RegisterInstance(int, float64, map[string]string) error
 	UnregisterInstance(int) error
+	UpdateInstance(int, float64, map[string]string) error
 }
 
 type emptyDiscovery struct{}
@@ -37,10 +38,14 @@ func GetDiscoverer() IDiscovery {
 	return discoverer
 }
 
-func (d *emptyDiscovery) RegisterInstance(port int, weight float64, meta map[string]string) error {
+func (d *emptyDiscovery) RegisterInstance(int, float64, map[string]string) error {
 	return nil
 }
 
-func (d *emptyDiscovery) UnregisterInstance(port int) error {
+func (d *emptyDiscovery) UnregisterInstance(int) error {
+	return nil
+}
+
+func (d *emptyDiscovery) UpdateInstance(int, float64, map[string]string) error {
 	return nil
 }

@@ -97,7 +97,7 @@ func conn(cfg *config.Database) *gorm.DB {
 	if !utils.IsEmpty(cfg.PoolSize) {
 		sqlDB, _ := db.DB()
 		sqlDB.SetMaxOpenConns(cfg.PoolSize)
-		sqlDB.SetMaxIdleConns(utils.CeilInt(cfg.PoolSize, 2))
+		sqlDB.SetMaxIdleConns(utils.CeilInt(float64(cfg.PoolSize / 2)))
 		sqlDB.SetConnMaxLifetime(cfg.PoolLifeTime)
 	}
 	return db
