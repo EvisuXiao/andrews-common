@@ -5,7 +5,7 @@ import (
 )
 
 type Foo struct {
-	ModelInsertable
+	ManagerInsertable
 	Uid     int    `json:"uid"`
 	Content string `json:"content"`
 }
@@ -18,8 +18,10 @@ func init() {
 	database.RegisterModel(fooModel)
 }
 
-func NewFooModel() *Foo {
-	return fooModel
+func NewFooModel(tenantId int) *Foo {
+	m := *fooModel
+	m.SetTenantId(tenantId)
+	return &m
 }
 
 func (m *Foo) TableName() string {

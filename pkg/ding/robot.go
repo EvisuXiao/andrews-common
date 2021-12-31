@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/EvisuXiao/andrews-common/curl"
 	"github.com/EvisuXiao/andrews-common/logging"
+	"github.com/EvisuXiao/andrews-common/pkg/curl"
 	"github.com/EvisuXiao/andrews-common/utils"
 )
 

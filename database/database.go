@@ -27,19 +27,20 @@ type database struct {
 	db   *gorm.DB
 }
 
+type TenantHandler func(int, string) string
+
 var (
-	dbConfigs config.Databases
-	databases = make(map[string]*database)
+	databases          = make(map[string]*database)
+	tenantNameResolver TenantHandler
 )
 
 // Init 初始化已注册的数据库及数据模型
 func Init() {
-	dbConfigs = config.GetDatabaseConfigs()
-	for _, db := range databases {
-		db.setup()
+	for name, cfg := range config.GetDatabaseConfigs() {
+		databases[name] = setup(name, cfg)
 	}
 	for _, m := range models {
-		m.MountDb()
+		m.SetDb()
 		m.InitSchema(m)
 	}
 }
@@ -48,16 +49,13 @@ func Init() {
  * 初始化数据库
  * @receiver *Database
  */
-func (db *database) setup() {
-	cfg, ok := dbConfigs[db.name]
-	if !ok {
-		logging.Fatal("Init: database %s connection name not found", db.name)
-	}
+func setup(name string, cfg *config.Database) *database {
 	if utils.IsEmpty(cfg.Master) {
-		logging.Fatal("Init:database %s master database must be valid", db.name)
+		logging.Fatal("Init:database %s master database must be valid", name)
 	}
-	db.db = conn(cfg)
-	logging.Info("Database %s setup successfully!", db.name)
+	db := conn(cfg)
+	logging.Info("Database %s setup successfully!", name)
+	return &database{name, db}
 }
 
 /**
@@ -149,12 +147,16 @@ func mssqlDSN(cfg *config.DatabaseConnection) string {
 }
 
 /**
- * 注册数据库
- * 初始化数据库模型时需调用此方法
- * @param  string name 数据库标识名
+ * 根据数据库标识名获取数据库实例
+ * @param  string dbName 数据库标识名
+ * @return *database
  */
-func RegisterDatabase(dbName string) {
-	databases[dbName] = &database{name: dbName}
+func getDatabaseByName(dbName string) *database {
+	if db, ok := databases[dbName]; ok {
+		return db
+	}
+	logging.Error("cannot find database(%s)", dbName)
+	return nil
 }
 
 /**
@@ -170,17 +172,19 @@ func GetDbByName(dbName string) *gorm.DB {
 	return nil
 }
 
-/**
- * 根据数据库标识名获取数据库实例
- * @param  string dbName 数据库标识名
- * @return *database
- */
-func getDatabaseByName(dbName string) *database {
-	if db, ok := databases[dbName]; ok {
-		return db
+func RegisterTenantNameResolver(resolver TenantHandler) {
+	tenantNameResolver = resolver
+}
+
+func GetTenantDbName(tenantId int, dbName string) string {
+	if !utils.IsEmpty(tenantId) && !utils.IsEmpty(tenantNameResolver) {
+		dbName = tenantNameResolver(tenantId, dbName)
 	}
-	logging.Error("cannot find database(%s)", dbName)
-	return nil
+	return dbName
+}
+
+func TenantDbResolver(tenantId int, dbName string) *database {
+	return getDatabaseByName(GetTenantDbName(tenantId, dbName))
 }
 
 /**

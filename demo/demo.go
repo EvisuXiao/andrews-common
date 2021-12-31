@@ -20,12 +20,20 @@ func init() {
 // 家里执行: go run demo/demo.go -dir=/Users/evisu/Workspace/Andrews/app -env=local -source=center
 func main() {
 	logging.Info("All Environment initialized successfully!")
-	startHttpServer()
-	//modelTest()
+	//startHttpServer()
+	modelTest()
 }
 
 func startHttpServer() {
 	http.StartServer(http.NewOption(demo.InitRouter()).WithQuitHandler(quitTest))
+}
+
+func resolverTest(tenantId int, dbName string) string {
+	tenantName := "lalllll"
+	if tenantId == 1 {
+		tenantName = "andrews"
+	}
+	return tenantName + "_" + dbName
 }
 
 func quitTest() {
@@ -36,7 +44,8 @@ func quitTest() {
 
 func modelTest() {
 	database.Init()
-	m := demo.NewFooModel()
+	database.RegisterTenantNameResolver(resolverTest)
+	m := demo.NewFooModel(2)
 	rows, err := m.GetRows(database.NewOptions())
 	fmt.Println(rows[0], err)
 }

@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"sync"
 
+	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 
 	"github.com/EvisuXiao/andrews-common/exception"
@@ -14,14 +15,15 @@ import (
 )
 
 type IModel interface {
-	MountDb()
-	InitSchema(s IModel)
+	SetDb()
+	InitSchema(IModel)
 }
 
 type Model struct {
-	*database
-	schema *schema.Schema
-	Id     int64 `gorm:"primaryKey" json:"id"`
+	dbName   string
+	schema   *schema.Schema
+	tenantId int
+	Id       int64 `gorm:"primaryKey" json:"id"`
 }
 
 var models []IModel
@@ -41,20 +43,27 @@ func RegisterModel(m IModel) {
  * @param  IModel s 表数据模型
  */
 func (m *Model) InitSchema(s IModel) {
-	sc, err := schema.Parse(s, &sync.Map{}, m.db.NamingStrategy)
+	sc, err := schema.Parse(s, &sync.Map{}, schema.NamingStrategy{SingularTable: true})
 	if utils.HasErr(err) {
 		logging.Fatal("Init: init db schema err: %+v", err)
 	}
 	m.schema = sc
 }
 
-/**
- * 根据数据库标识名设置数据库
- * @receiver *Model
- * @param  string dbName 数据库标识名
- */
-func (m *Model) SetDatabaseByName(dbName string) {
-	m.database = getDatabaseByName(dbName)
+func (m *Model) SetTenantId(tenantId int) {
+	m.tenantId = tenantId
+}
+
+func (m *Model) IsSAASMode() bool {
+	return !utils.IsEmpty(m.tenantId)
+}
+
+func (m *Model) SetDbName(dbName string) {
+	m.dbName = dbName
+}
+
+func (m *Model) GetDb() *gorm.DB {
+	return TenantDbResolver(m.tenantId, m.dbName).GetDb()
 }
 
 /**
